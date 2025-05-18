@@ -8,16 +8,12 @@ function updateSlide() {
   const mainWidth = main.offsetWidth;
   const translateValue = currentIndex * -mainWidth;
 
-  // Apply transform with transition
   slideRow.style.transition = "transform 0.8s ease-in-out";
   slideRow.style.transform = `translateX(${translateValue}px)`;
 
-  // Remove any old transitionend handlers
   slideRow.removeEventListener("transitionend", handleTransitionEnd);
-  // Add a new one for this transition
   slideRow.addEventListener("transitionend", handleTransitionEnd);
 
-  // Update active dot
   btns.forEach((btn, index) => {
     btn.classList.toggle("active", index === currentIndex);
   });
@@ -26,7 +22,6 @@ function updateSlide() {
 function handleTransitionEnd(e) {
   if (e.propertyName === "transform") {
     animateActiveSlide();
-    // Remove listener after firing once
     slideRow.removeEventListener("transitionend", handleTransitionEnd);
   }
 }
@@ -39,7 +34,7 @@ function animateActiveSlide() {
     const image = slide.querySelector("img");
 
     if (index === currentIndex) {
-        gsap.set(content, { x: -40, opacity: 0 });
+      gsap.set(content, { x: -40, opacity: 0 });
       gsap.set(image, { scale: 1.06, opacity: 0 });
 
       gsap.timeline()
@@ -71,5 +66,50 @@ btns.forEach((btn, index) => {
 });
 
 window.addEventListener("resize", updateSlide);
-
 document.getElementById("year").textContent = new Date().getFullYear();
+
+
+// 🔄 DRAG & SWIPE SUPPORT (Web + Mobile)
+let startX = 0;
+let isDragging = false;
+const threshold = 50; // px to trigger change
+
+function onDragStart(e) {
+  isDragging = true;
+  startX = e.type.includes("mouse") ? e.pageX : e.touches[0].pageX;
+}
+
+function onDragMove(e) {
+  if (!isDragging) return;
+  const x = e.type.includes("mouse") ? e.pageX : e.touches[0].pageX;
+  const deltaX = x - startX;
+
+  slideRow.style.transition = "none";
+  slideRow.style.transform = `translateX(${(-main.offsetWidth * currentIndex) + deltaX}px)`;
+}
+
+function onDragEnd(e) {
+  if (!isDragging) return;
+  isDragging = false;
+
+  const endX = e.type.includes("mouse") ? e.pageX : e.changedTouches[0].pageX;
+  const deltaX = endX - startX;
+
+  if (deltaX > threshold && currentIndex > 0) {
+    currentIndex--;
+  } else if (deltaX < -threshold && currentIndex < btns.length - 1) {
+    currentIndex++;
+  }
+
+  updateSlide();
+}
+
+// 👇 Attach events to the main area
+main.addEventListener("mousedown", onDragStart);
+main.addEventListener("mousemove", onDragMove);
+main.addEventListener("mouseup", onDragEnd);
+main.addEventListener("mouseleave", onDragEnd);
+
+main.addEventListener("touchstart", onDragStart, { passive: true });
+main.addEventListener("touchmove", onDragMove, { passive: true });
+main.addEventListener("touchend", onDragEnd);
